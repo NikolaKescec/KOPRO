@@ -1,0 +1,26 @@
+version: '3'
+
+services:
+  yd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: y.local
+    command: -sname y
+
+  xd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: x.local
+    command: -sname x
+
+  zd:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    hostname: z.local
+    command: -sname z -run load_balancer start_balancer
+    links:
+      - yd:y
+      - xd:x

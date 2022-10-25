@@ -1,0 +1,11 @@
+1. Napraviti proces koji prima poruke za stavljanje, brisanje, zamjenu i pretravanje mape (ključ n-torka ime i prezime
+vrijednost je lista prijatelja - ntorka ime i prezime)
+
+2. Napraviti sekvencijalni API za proces.
+
+3. Raspodijeliti odgovornost na dva procesa koji svaki odrađuje dio ključeva i glavni proces koji zna preusmjeriti zahtjeve.
+
+4. Napraviti proces koji prima  osobu kao ključ i vraća listu prijatelja s određenim brojem skokova npr. za broj skokova 2 nade i prijatelje
+od prijatelja. U listi se ne smije nalaziti više puta ista osoba.
+
+5. Baciti iznimku ako je koji proces ubijen.

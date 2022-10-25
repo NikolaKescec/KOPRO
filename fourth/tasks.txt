@@ -1,0 +1,5 @@
+1. pokrenuti distribuirano (u dockeru) procese kji obrađuuju dio ključeva od prošli puta
+
+2. napraviti distribuiranu registraciju procesa
+
+3. napraviti praće nje da li je neki proces down i strategiju pnovnog pokretanja uz gubitak
