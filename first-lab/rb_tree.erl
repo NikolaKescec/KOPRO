@@ -1,6 +1,6 @@
 -module(rb_tree).
 
--export([start_server/0, add/1, add/2, get/1, get/2, delete/1, delete/2]).
+-export([start_server/0, test_add/0, test_delete/0, add/1, add/2, get/1, get/2, delete/1, delete/2, loop/0]).
 
 % In rb tree these rules must apply:
 % -root has to be black
@@ -104,84 +104,65 @@ find_greatest_smallest({_, _, _, RightChild}) ->
 % D1: P is black, S is black, C is black, D is black -> repaint S red
 % Left variant
 rebalance({PValue, black, nil, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D1~n"),
-    {PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
-rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D1~n"),
-    {PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
+    rebalance({PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current});
+rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
+    rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current});
 % Right variant
 rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, nil}) ->
-    io:format("D1~n"),
-    {PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, nil};
-rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}}) ->
-    {PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}};
+    rebalance({PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, nil, current});
+rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
+    rebalance({PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}, current});
 
 
 % D3: P is black, S is red, C is black, D is black -> rotate S around P, exchange S and P colors
 % Left variant
 rebalance({PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D3~n"),
-    {SValue, black, {PValue, red, nil, {CValue, black, CLeftChild, CRightChild}}, {DValue, black, DLeftChild, DRightChild}};
-rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D3~n"),
-    {SValue, black, {PValue, red, {NValue, black, NLeftChild, NRightChild}, {CValue, black, CLeftChild, CRightChild}}, {DValue, black, DLeftChild, DRightChild}};
+    {SValue, black, rebalance({PValue, red, nil, {CValue, black, CLeftChild, CRightChild}}), {DValue, black, DLeftChild, DRightChild}};
+rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
+    {SValue, black, rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, CRightChild}, current}), {DValue, black, DLeftChild, DRightChild}};
 % Right variant
 rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil}) ->
-    io:format("D3~n"),
-    {SValue, black, {DValue, black, DLeftChild, DRightChild}, {PValue, red, {CValue, black, CLeftChild, CRightChild}, nil}};
-rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild}}) ->
-    io:format("D3~n"),
-    {SValue, black, {DValue, black, DLeftChild, DRightChild}, {PValue, red, {CValue, black, CLeftChild, CRightChild}, {NValue, black, NLeftChild, NRightChild}}};
+    {SValue, black, {DValue, black, DLeftChild, DRightChild}, rebalance({PValue, red, {CValue, black, CLeftChild, CRightChild}, nil})};
+rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
+    {SValue, black, {DValue, black, DLeftChild, DRightChild}, rebalance({PValue, red, {CValue, black, CLeftChild, CRightChild}, {NValue, black, NLeftChild, NRightChild, current}})};
 
 
 % D4: P is red, S is black, C is black, D is black -> exchange colors of P and S
 % Left variant
 rebalance({PValue, red, nil, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D4~n"),
     {PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
-rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D4~n"),
+rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
     {PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
 % Right variant
 rebalance({PValue, red, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil}) ->
-    io:format("D4~n"),
-    {PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil};
-rebalance({PValue, red, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild}}) ->
-    io:format("D4~n"),
+    {PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil, current};
+rebalance({PValue, red, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     {PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild}};
 
 
 % D5: P is either red or black, S is black, C is red, D is black -> rotate C around S, color S black
 % Left variant
 rebalance({PValue, PColor, nil, {SValue, black, {CValue, red, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D5~n"),
     rebalance({PValue, PColor, nil, {CValue, black, CLeftChild, {SValue, red, CRightChild, {DValue, black, DLeftChild, DRightChild}}}});
-rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild}, {SValue, black, {CValue, red, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    io:format("D5~n"),
-    rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild}, {CValue, black, CLeftChild, {SValue, red, CRightChild, {DValue, black, DLeftChild, DRightChild}}}});
+rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, red, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
+    rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, {SValue, red, CRightChild, {DValue, black, DLeftChild, DRightChild}}}});
 % Right variant
 rebalance({PValue, PColor, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, red, CLeftChild, CRightChild}}, nil}) ->
-    io:format("D5~n"),
     rebalance({PValue, PColor, {CValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, CLeftChild}, CRightChild}, nil});
-rebalance({PValue, PColor, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, red, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild}}) ->
-    io:format("D5~n"),
-    rebalance({PValue, PColor, {CValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, CLeftChild}, CRightChild}, {NValue, black, NLeftChild, NRightChild}});
+rebalance({PValue, PColor, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, red, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
+    rebalance({PValue, PColor, {CValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, CLeftChild}, CRightChild}, {NValue, black, NLeftChild, NRightChild, current}});
 
 
 % D6: Parent is either red or black, S is black, D is red, C is not important -> rotate S around P, exchange S and P colors, paint D black
 % Left variant
 rebalance({PValue, PColor, nil, {SValue, black, SLeftChild, {DValue, red, DLeftChild, DRightChild}}}) ->
-    io:format("D6~n"),
     {SValue, PColor, {PValue, black, nil, SLeftChild}, {DValue, black, DLeftChild, DRightChild}};
-rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild}, {SValue, black, SLeftChild, {DValue, red, DLeftChild, DRightChild}}}) ->
-    io:format("D6~n"),
+rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, SLeftChild, {DValue, red, DLeftChild, DRightChild}}}) ->
     {SValue, PColor, {PValue, black, {NValue, black, NLeftChild, NRightChild}, SLeftChild}, {DValue, black, DLeftChild, DRightChild}};
 % Right variant
 rebalance({PValue, PColor, {SValue, black, {DValue, red, DLeftChild, DRightChild}, SRightChild}, nil}) ->
-    io:format("D6~n"),
     {SValue, PColor, {DValue, black, DLeftChild, DRightChild}, {PValue, black, SRightChild, nil}};
-rebalance({PValue, PColor, {SValue, black, {DValue, red, DLeftChild, DRightChild}, SRightChild}, {NodeValue, black, NLeftChild, NRightChild}}) ->
-    io:format("D6~n"),
+rebalance({PValue, PColor, {SValue, black, {DValue, red, DLeftChild, DRightChild}, SRightChild}, {NodeValue, black, NLeftChild, NRightChild, current}}) ->
     {SValue, PColor, {DValue, black, DLeftChild, DRightChild}, {PValue, black, SRightChild, {NodeValue, black, NLeftChild, NRightChild}}};
 
 
@@ -190,13 +171,13 @@ rebalance(Node) ->
 
 
 % RB SEARCH
-get({NodeValue, {LeftChild, RightChild}}, Value) when NodeValue =:= Value ->
-    {NodeValue, {LeftChild, RightChild}};
-get({NodeValue, {LeftChild, _}}, Value) when NodeValue < Value ->
-    get(LeftChild, Value);
-get({NodeValue, {_, RightChild}}, Value) when NodeValue > Value ->
-    get(RightChild, Value);
-get(_, Value) ->
+get(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue ->
+    {NodeValue, Color, LeftChild, RightChild};
+get(Value, {NodeValue, _, LeftChild, _}) when NodeValue < Value ->
+    get(Value, LeftChild);
+get(Value, {NodeValue, _, _, RightChild}) when NodeValue > Value ->
+    get(Value, RightChild);
+get(Value, _) ->
     {notFound, Value}.
 
 test_add() ->
@@ -210,10 +191,9 @@ test_add() ->
 
 test_delete() ->
     T = test_add(),
-    io:format("Delete 6~n"),
-    delete(6, T).
-    % io:format("Delete 6~n"),
-    % delete(6, T1).
+    T1 =delete(4, T),
+    T2 =delete(6, T1),
+    delete(2, T2).
 
 loop() -> 
     loop(nil).
@@ -222,7 +202,7 @@ loop(Tree) ->
     io:format("Tree: ~p~n", [Tree]),
     receive
         {_, {add, Value}} ->
-            io:format("PUT: ~w~n", [Value]),
+            io:format("ADD: ~w~n", [Value]),
             loop(add(Value, Tree));
         {From, {get, Value}} ->
             io:format("GET: ~w~n", [Value]),
@@ -243,9 +223,9 @@ start_server() ->
 start_client({get, Value}) -> 
     rb_tree_server!{self(), {get, Value}},
     receive
-        Value -> 
-            io:format("Value: ~w~n", [Value]),
-            Value
+        Node -> 
+            io:format("Value: ~w~n", [Node]),
+            Node
     end;
 start_client(Message) -> 
     rb_tree_server!{self(), Message}.
@@ -257,4 +237,4 @@ get(Value) ->
     start_client({get, Value}).
 
 delete(Value) ->
-    start_client({remove, Value}).
+    start_client({delete, Value}).
