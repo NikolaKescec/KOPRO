@@ -81,7 +81,6 @@ delete(Value, {NodeValue, _, nil, RightChild}) when Value =:= NodeValue->
 % First successor in right subtree
 delete(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue->
     {FoundValue, _, _, _} = find_greatest_smallest(LeftChild),
-    io:format("Found value: ~w~n", [FoundValue]),
     rebalance({FoundValue, Color, delete(FoundValue, LeftChild), RightChild});
 
 delete(Value, {NodeValue, Color, LeftChild, RightChild}) when Value < NodeValue->
