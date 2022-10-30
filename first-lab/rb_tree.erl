@@ -2,6 +2,8 @@
 
 -export([start_server/0, test_add/0, test_delete/0, add/1, add/2, get/1, get/2, delete/1, delete/2, loop/0]).
 
+-define(NIL, {nil, black, nil, nil}).
+
 % In rb tree these rules must apply:
 % -root has to be black
 % -no two adjacent (direct descendants) red nodes
@@ -11,14 +13,14 @@
 
 % INSERTION IN RB tree
 % Left insert
-add_value(Value, {NodeValue, Color, LeftChild, RightChild}) when Value < NodeValue ->
+add_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value < NodeValue ->
     balance({NodeValue, Color, add_value(Value, LeftChild), RightChild});
 % Right insert
-add_value(Value, {NodeValue, Color, LeftChild, RightChild}) when Value > NodeValue ->
+add_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value > NodeValue ->
     balance({NodeValue, Color, LeftChild, add_value(Value, RightChild)});
 % Node insertion on the right place
-add_value(Value, nil) ->
-    {Value, red, nil, nil}.
+add_value(Value, ?NIL) ->
+    {Value, red, ?NIL, ?NIL}.
 % Initial insertion
 add(Value, Node) ->
     black_root(add_value(Value, Node)).
@@ -40,26 +42,18 @@ balance({GValue, black, {UValue, red, ULeftChild, URightChild},  {PValue, red, P
 
 % I5: black G, red P and black U with inner red N -> apply correct rotation on the child and finish with case I6
 % Right inner child of G variant
-balance({GValue, black, {PValue, red, PLeftChild, {NValue, red, NLeftChild, NRightChild}},  nil}) ->
-    balance({GValue, black, {NValue, red, {PValue, red, PLeftChild, NLeftChild}, NRightChild},  nil}); % -> left roration
 balance({GValue, black, {PValue, red, PLeftChild, {NValue, red, NLeftChild, NRightChild}},  {UValue, black, ULeftChild, URightChild}}) ->
     balance({GValue, black, {NValue, red, {PValue, red, PLeftChild, NLeftChild}, NRightChild},  {UValue, black, ULeftChild, URightChild}}); % -> left roration
 % left inner child of G variant
-balance({GValue, black, nil,  {PValue, red, {NValue, red, NLeftChild, NRightChild}, PRightChild}}) ->
-    balance({GValue, black, nil, {NValue, red, NLeftChild, {PValue, red, NRightChild, PRightChild}}}); % -> right rotation
 balance({GValue, black, {UValue, black, ULeftChild, URightChild}, {PValue, red, {NValue, red, NLeftChild, NRightChild}, PRightChild}}) ->
     balance({GValue, black,  {UValue, black, ULeftChild, URightChild}, {NValue, red, NLeftChild, {PValue, red, NRightChild, PRightChild}}}); % -> right rotation
 
 
 % I6: black G, red P and black U with outer red N -> apply correct rotation and recolor
 % left outer child of G variant
-balance({GValue, black, {PValue, red, {NValue, red, NLeftChild, NRightChild}, PRightChild}, nil}) ->
-    {PValue, black, {NValue, red, NLeftChild, NRightChild}, {GValue, red, PRightChild, nil}}; % -> right rotation
 balance({GValue, black, {PValue, red, {NValue, red, NLeftChild, NRightChild}, PRightChild}, {UValue, black, ULeftChild, URightChild}}) ->
     {PValue, black, {NValue, red, NLeftChild, NRightChild}, {GValue, red, PRightChild, {UValue, black, ULeftChild, URightChild}}}; % -> right rotation
 % Right outer child of G variant
-balance({GValue, black,  nil, {PValue, red, PLeftChild, {NValue, red, NLeftChild, NRightChild}}}) ->
-    {PValue, black, {GValue, red, nil, PLeftChild}, {NValue, red, NLeftChild, NRightChild}}; % -> left roration
 balance({GValue, black, {UValue, black, ULeftChild, URightChild}, {PValue, red, PLeftChild, {NValue, red, NLeftChild, NRightChild}}}) ->
     {PValue, black, {GValue, red, {UValue, black, ULeftChild, URightChild}, PLeftChild}, {NValue, red, NLeftChild, NRightChild}}; % -> left roration
 
@@ -70,29 +64,31 @@ balance(Node) ->
 
 % DELETION IN RB TREE
 % No children case
-delete(Value, {NodeValue, _, nil, nil}) when Value =:= NodeValue->
-    nil;
+delete_value(Value, {NodeValue, _, ?NIL, ?NIL}) when Value =:= NodeValue->
+    {nil, black, nil, nil, current};
 % One child case left case
-delete(Value, {NodeValue, _, LeftChild, nil}) when Value =:= NodeValue->
+delete_value(Value, {NodeValue, _, LeftChild, ?NIL}) when Value =:= NodeValue->
     rebalance(LeftChild);
 % One child case right case
-delete(Value, {NodeValue, _, nil, RightChild}) when Value =:= NodeValue->
+delete_value(Value, {NodeValue, _, ?NIL, RightChild}) when Value =:= NodeValue->
     rebalance(RightChild);
 % First successor in right subtree
-delete(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue->
+delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue->
     {FoundValue, _, _, _} = find_greatest_smallest(LeftChild),
     rebalance({FoundValue, Color, delete(FoundValue, LeftChild), RightChild});
 
-delete(Value, {NodeValue, Color, LeftChild, RightChild}) when Value < NodeValue->
+delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value < NodeValue->
     rebalance({NodeValue, Color, delete(Value, LeftChild), RightChild});
-delete(Value, {NodeValue, Color, LeftChild, RightChild}) when Value > NodeValue->
+delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value > NodeValue->
     rebalance({NodeValue, Color, LeftChild, delete(Value, RightChild)}).
 
-
-find_greatest_smallest({NodeValue, Color, nil, nil}) ->
-    {NodeValue, Color, nil, nil};
+find_greatest_smallest({NodeValue, Color, ?NIL, ?NIL}) ->
+    {NodeValue, Color, ?NIL, ?NIL};
 find_greatest_smallest({_, _, _, RightChild}) ->
     find_greatest_smallest(RightChild).
+
+delete(Value, Node) ->
+    rebalance(delete_value(Value, Node)).
 
 % P -> Parent
 % S -> Sibling
@@ -100,71 +96,58 @@ find_greatest_smallest({_, _, _, RightChild}) ->
 % D -> Distant nephew
 % N -> Current node
 
-% D1: P is black, S is black, C is black, D is black -> repaint S red
+% D1: P is black, S is black, C is black, D is black -> repaint S red, set P as current and immediately continue rebalance
 % Left variant
-rebalance({PValue, black, nil, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    rebalance({PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current});
 rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
     rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current});
 % Right variant
-rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, nil}) ->
-    rebalance({PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, nil, current});
 rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     rebalance({PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}, current});
 
 
-% D3: P is black, S is red, C is black, D is black -> rotate S around P, exchange S and P colors
+% D3: P is black, S is red, C is black, D is black -> rotate S around P, exchange S and P colors, rebalance P
 % Left variant
-rebalance({PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    {SValue, black, rebalance({PValue, red, nil, {CValue, black, CLeftChild, CRightChild}}), {DValue, black, DLeftChild, DRightChild}};
 rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
     {SValue, black, rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, CRightChild}, current}), {DValue, black, DLeftChild, DRightChild}};
 % Right variant
-rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil}) ->
-    {SValue, black, {DValue, black, DLeftChild, DRightChild}, rebalance({PValue, red, {CValue, black, CLeftChild, CRightChild}, nil})};
 rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     {SValue, black, {DValue, black, DLeftChild, DRightChild}, rebalance({PValue, red, {CValue, black, CLeftChild, CRightChild}, {NValue, black, NLeftChild, NRightChild, current}})};
 
 
-% D4: P is red, S is black, C is black, D is black -> exchange colors of P and S
+% D4: P is red, S is black, C is black, D is black -> exchange colors of P and S = REBALANCE DONE
 % Left variant
-rebalance({PValue, red, nil, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    {PValue, black, nil, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
 rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
     {PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}};
 % Right variant
-rebalance({PValue, red, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil}) ->
-    {PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, nil, current};
 rebalance({PValue, red, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     {PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild}};
 
 
-% D5: P is either red or black, S is black, C is red, D is black -> rotate C around S, color S black
+% D5: P is either red or black, S is black, C is red, D is black -> rotate C around S, color S black and rebalance to D6
 % Left variant
-rebalance({PValue, PColor, nil, {SValue, black, {CValue, red, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    rebalance({PValue, PColor, nil, {CValue, black, CLeftChild, {SValue, red, CRightChild, {DValue, black, DLeftChild, DRightChild}}}});
 rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, red, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
     rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, {SValue, red, CRightChild, {DValue, black, DLeftChild, DRightChild}}}});
 % Right variant
-rebalance({PValue, PColor, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, red, CLeftChild, CRightChild}}, nil}) ->
-    rebalance({PValue, PColor, {CValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, CLeftChild}, CRightChild}, nil});
 rebalance({PValue, PColor, {SValue, black, {DValue, black, DLeftChild, DRightChild}, {CValue, red, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     rebalance({PValue, PColor, {CValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, CLeftChild}, CRightChild}, {NValue, black, NLeftChild, NRightChild, current}});
 
 
-% D6: Parent is either red or black, S is black, D is red, C is not important -> rotate S around P, exchange S and P colors, paint D black
+% D6: Parent is either red or black, S is black, D is red, C is not important -> rotate S around P, exchange S and P colors, paint D black = REBALANCE COMPLETE
 % Left variant
-rebalance({PValue, PColor, nil, {SValue, black, SLeftChild, {DValue, red, DLeftChild, DRightChild}}}) ->
-    {SValue, PColor, {PValue, black, nil, SLeftChild}, {DValue, black, DLeftChild, DRightChild}};
 rebalance({PValue, PColor, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, SLeftChild, {DValue, red, DLeftChild, DRightChild}}}) ->
     {SValue, PColor, {PValue, black, {NValue, black, NLeftChild, NRightChild}, SLeftChild}, {DValue, black, DLeftChild, DRightChild}};
 % Right variant
-rebalance({PValue, PColor, {SValue, black, {DValue, red, DLeftChild, DRightChild}, SRightChild}, nil}) ->
-    {SValue, PColor, {DValue, black, DLeftChild, DRightChild}, {PValue, black, SRightChild, nil}};
 rebalance({PValue, PColor, {SValue, black, {DValue, red, DLeftChild, DRightChild}, SRightChild}, {NodeValue, black, NLeftChild, NRightChild, current}}) ->
     {SValue, PColor, {DValue, black, DLeftChild, DRightChild}, {PValue, black, SRightChild, {NodeValue, black, NLeftChild, NRightChild}}};
 
 
+% Remove current tag if none of clausules before matched for current node.
+rebalance({NodeValue, Color, {CurrentValue, CurrentColor, CurrentLeftChild, CurrentRightChild, current}, RightChild}) ->
+    {NodeValue, Color, {CurrentValue, CurrentColor, CurrentLeftChild, CurrentRightChild}, RightChild};
+rebalance({NodeValue, Color, LeftChild, {CurrentValue, CurrentColor, CurrentLeftChild, CurrentRightChild, current}}) ->
+    {NodeValue, Color, LeftChild, {CurrentValue, CurrentColor, CurrentLeftChild, CurrentRightChild}};
+rebalance({NodeValue, Color, LeftChild, RightChild, current}) ->
+    {NodeValue, Color, LeftChild, RightChild};
 rebalance(Node) ->
     Node.
 
@@ -180,7 +163,7 @@ get(Value, _) ->
     {notFound, Value}.
 
 test_add() ->
-    Tree = add(6, nil),
+    Tree = add(6, ?NIL),
     Tree1 = add(1, Tree),
     Tree2 = add(4, Tree1),
     Tree3 = add(2, Tree2),
@@ -190,12 +173,11 @@ test_add() ->
 
 test_delete() ->
     T = test_add(),
-    T1 =delete(4, T),
-    T2 =delete(6, T1),
-    delete(2, T2).
+    T1 =delete(2, T),
+    delete(4, T1).
 
 loop() -> 
-    loop(nil).
+    loop(?NIL).
 
 loop(Tree) ->
     io:format("Tree: ~p~n", [Tree]),
