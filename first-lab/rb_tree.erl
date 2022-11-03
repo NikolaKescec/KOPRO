@@ -67,20 +67,20 @@ balance(Node) ->
 delete_value(Value, {NodeValue, _, ?NIL, ?NIL}) when Value =:= NodeValue->
     {nil, black, nil, nil, current};
 % One child case left case
-delete_value(Value, {NodeValue, _, LeftChild, ?NIL}) when Value =:= NodeValue->
-    rebalance(LeftChild);
+delete_value(Value, {NodeValue, _, {LValue, LColor, LLeftChild, LRightChild}, ?NIL}) when Value =:= NodeValue->
+    {LValue, LColor, LLeftChild, LRightChild, current};
 % One child case right case
-delete_value(Value, {NodeValue, _, ?NIL, RightChild}) when Value =:= NodeValue->
-    rebalance(RightChild);
+delete_value(Value, {NodeValue, _, ?NIL, {RValue, RColor, RLeftChild, RRightChild}}) when Value =:= NodeValue->
+    {RValue, RColor, RLeftChild, RRightChild, current};
 % First successor in right subtree
 delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue->
     {FoundValue, _, _, _} = find_greatest_smallest(LeftChild),
-    rebalance({FoundValue, Color, delete(FoundValue, LeftChild), RightChild});
+    rebalance({FoundValue, Color, delete_value(FoundValue, LeftChild), RightChild});
 
 delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value < NodeValue->
-    rebalance({NodeValue, Color, delete(Value, LeftChild), RightChild});
+    rebalance({NodeValue, Color, delete_value(Value, LeftChild), RightChild});
 delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value > NodeValue->
-    rebalance({NodeValue, Color, LeftChild, delete(Value, RightChild)}).
+    rebalance({NodeValue, Color, LeftChild, delete_value(Value, RightChild)}).
 
 find_greatest_smallest({NodeValue, Color, ?NIL, ?NIL}) ->
     {NodeValue, Color, ?NIL, ?NIL};
@@ -99,16 +99,16 @@ delete(Value, Node) ->
 % D1: P is black, S is black, C is black, D is black -> repaint S red, set P as current and immediately continue rebalance
 % Left variant
 rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current});
+    {PValue, black, {NValue, black, NLeftChild, NRightChild}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, current};
 % Right variant
 rebalance({PValue, black, {SValue, black, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
-    rebalance({PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}, current});
+    {PValue, black, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}, {NValue, black, NLeftChild, NRightChild}, current};
 
 
 % D3: P is black, S is red, C is black, D is black -> rotate S around P, exchange S and P colors, rebalance P
 % Left variant
 rebalance({PValue, black, {NValue, black, NLeftChild, NRightChild, current}, {SValue, red, {CValue, black, CLeftChild, CRightChild}, {DValue, black, DLeftChild, DRightChild}}}) ->
-    {SValue, black, rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, CRightChild}, current}), {DValue, black, DLeftChild, DRightChild}};
+    {SValue, black, rebalance({PValue, red, {NValue, black, NLeftChild, NRightChild, current}, {CValue, black, CLeftChild, CRightChild}}), {DValue, black, DLeftChild, DRightChild}};
 % Right variant
 rebalance({PValue, black, {SValue, red, {DValue, black, DLeftChild, DRightChild}, {CValue, black, CLeftChild, CRightChild}}, {NValue, black, NLeftChild, NRightChild, current}}) ->
     {SValue, black, {DValue, black, DLeftChild, DRightChild}, rebalance({PValue, red, {CValue, black, CLeftChild, CRightChild}, {NValue, black, NLeftChild, NRightChild, current}})};
@@ -163,18 +163,22 @@ get(Value, _) ->
     {notFound, Value}.
 
 test_add() ->
-    Tree = add(6, ?NIL),
-    Tree1 = add(1, Tree),
-    Tree2 = add(4, Tree1),
-    Tree3 = add(2, Tree2),
-    Tree4 = add(8, Tree3),
-    add(9, Tree4).
+    Tree = add(1, ?NIL),
+    Tree1 = add(2, Tree),
+    Tree2 = add(3, Tree1),
+    Tree3 = add(4, Tree2),
+    Tree4 = add(5, Tree3),
+    Tree5 = add(6, Tree4),
+    Tree6 = add(7, Tree5),
+    Tree7 = add(8, Tree6),
+    Tree8 = add(9, Tree7),
+    add(10, Tree8).
 
 
 test_delete() ->
     T = test_add(),
-    T1 =delete(2, T),
-    delete(4, T1).
+    T1 = delete(4, T),
+    delete(6, T1).
 
 loop() -> 
     loop(?NIL).
