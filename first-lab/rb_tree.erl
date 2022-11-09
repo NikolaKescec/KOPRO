@@ -1,6 +1,6 @@
 -module(rb_tree).
 
--export([start_server/0, test_add/0, test_delete/0, add/1, add/2, get/1, get/2, delete/1, delete/2, loop/0]).
+-export([start_server/0, test_add/0, test_delete/0, add/1, add/2, get/1, get/2, delete/1, delete/2, loop/0, find_greatest_smallest_handler/0]).
 
 -define(NIL, {nil, black, nil, nil}).
 
@@ -74,7 +74,8 @@ delete_value(Value, {NodeValue, _, ?NIL, {RValue, RColor, RLeftChild, RRightChil
     {RValue, RColor, RLeftChild, RRightChild, current};
 % First successor in right subtree
 delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue->
-    {FoundValue, _, _, _} = find_greatest_smallest(LeftChild),
+    WorkerPid = spawn(rb_tree, find_greatest_smallest_handler, []),
+    {FoundValue, _, _, _} = WorkerPid!LeftChild,
     rebalance({FoundValue, Color, delete_value(FoundValue, LeftChild), RightChild});
 
 delete_value(Value, {NodeValue, Color, LeftChild, RightChild}) when NodeValue =/= nil, Value < NodeValue->
@@ -86,6 +87,12 @@ find_greatest_smallest({NodeValue, Color, ?NIL, ?NIL}) ->
     {NodeValue, Color, ?NIL, ?NIL};
 find_greatest_smallest({_, _, _, RightChild}) ->
     find_greatest_smallest(RightChild).
+
+find_greatest_smallest_handler() -> 
+    io:format("Handler started~n"),
+    receive
+        {From, Tree} -> From!find_greatest_smallest(Tree)
+    end.
 
 delete(Value, Node) ->
     rebalance(delete_value(Value, Node)).
@@ -155,9 +162,9 @@ rebalance(Node) ->
 % RB SEARCH
 get(Value, {NodeValue, Color, LeftChild, RightChild}) when Value =:= NodeValue ->
     {NodeValue, Color, LeftChild, RightChild};
-get(Value, {NodeValue, _, LeftChild, _}) when NodeValue < Value ->
+get(Value, {NodeValue, _, LeftChild, _}) when NodeValue =/= nil, NodeValue > Value ->
     get(Value, LeftChild);
-get(Value, {NodeValue, _, _, RightChild}) when NodeValue > Value ->
+get(Value, {NodeValue, _, _, RightChild}) when NodeValue =/= nil, NodeValue < Value ->
     get(Value, RightChild);
 get(Value, _) ->
     {notFound, Value}.
